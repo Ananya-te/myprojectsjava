@@ -1,0 +1,148 @@
+##ATM INTERFACE
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
+public class ATM {
+    private static Scanner scanner = new Scanner(System.in);
+    private static User currentUser;
+
+    public static void main(String[] args) {
+        while (true) {
+            if (currentUser == null) {
+                authenticateUser();
+            } else {
+                showMainMenu();
+            }
+        }
+    }
+
+    private static void authenticateUser() {
+        System.out.print("Enter user ID: ");
+        String userId = scanner.nextLine();
+        System.out.print("Enter PIN: ");
+        String pin = scanner.nextLine();
+
+        if (userId.equals("123ritz") && pin.equals("1234")) {
+            currentUser = new User("123ritz", "1234", 2000);
+            System.out.println("Authentication successful.");
+        } else {
+            System.out.println("Invalid user ID or PIN. Please try again.");
+        }
+    }
+
+    private static void showMainMenu() {
+        while (true) {
+            System.out.println("\n--- ATM Main Menu ---");
+            System.out.println("1. View Transactions History");
+            System.out.println("2. Withdraw");
+            System.out.println("3. Deposit");
+            System.out.println("4. Transfer");
+            System.out.println("5. Quit");
+            System.out.print("Enter your choice: ");
+
+            int choice = scanner.nextInt();
+            scanner.nextLine(); 
+
+            switch (choice) {
+                case 1:
+                    currentUser.showTransactionHistory();
+                    break;
+                case 2:
+                    withdraw();
+                    break;
+                case 3:
+                    deposit();
+                    break;
+                case 4:
+                    transfer();
+                    break;
+                case 5:
+                    System.out.println("Thank you for using the ATM. Goodbye!");
+                    currentUser = null;
+                    return;
+                default:
+                    System.out.println("Invalid choice. Please try again.");
+            }
+        }
+    }
+
+    private static void withdraw() {
+        System.out.print("Enter amount to withdraw: ");
+        double amount = scanner.nextDouble();
+        scanner.nextLine(); 
+        currentUser.withdraw(amount);
+    }
+
+    private static void deposit() {
+        System.out.print("Enter amount to deposit: ");
+        double amount = scanner.nextDouble();
+        scanner.nextLine(); 
+        currentUser.deposit(amount);
+    }
+
+    private static void transfer() {
+        System.out.print("Enter recipient's user ID: ");
+        String recipientId = scanner.nextLine();
+        System.out.print("Enter amount to transfer: ");
+        double amount = scanner.nextDouble();
+        scanner.nextLine();
+        currentUser.transfer(recipientId, amount);
+    }
+}
+
+class User {
+    private String userId;
+    private String pin;
+    private double balance;
+    private List<String> transactionHistory;
+
+    public User(String userId, String pin, double initialBalance) {
+        this.userId = userId;
+        this.pin = pin;
+        this.balance = initialBalance;
+        this.transactionHistory = new ArrayList<>();
+    }
+
+    public void withdraw(double amount) {
+        if (amount > 0 && amount <= balance) {
+            balance -= amount;
+            addTransaction("Withdrawal: -$" + amount);
+            System.out.println("Withdrawal successful. New balance: $" + balance);
+        } else {
+            System.out.println("Withdrawal failed. Insufficient funds or invalid amount.");
+        }
+    }
+
+    public void deposit(double amount) {
+        if (amount > 0) {
+            balance += amount;
+            addTransaction("Deposit: +$" + amount);
+            System.out.println("Deposit successful. New balance: $" + balance);
+        } else {
+            System.out.println("Deposit failed. Invalid amount.");
+        }
+    }
+
+    public void transfer(String recipientId, double amount) {
+        if (amount > 0 && amount <= balance) {
+            balance -= amount;
+            addTransaction("Transfer to " + recipientId + ": -$" + amount);
+            System.out.println("Transfer successful. New balance: $" + balance);
+        } else {
+            System.out.println("Transfer failed. Insufficient funds or invalid amount.");
+        }
+    }
+
+    public void showTransactionHistory() {
+        System.out.println("\n--- Transaction History ---");
+        for (String transaction : transactionHistory) {
+            System.out.println(transaction);
+        }
+    }
+
+    private void addTransaction(String transaction) {
+        transactionHistory.add(transaction);
+    }
+}
