@@ -1,0 +1,224 @@
+##ONLINE EXAMINATION 
+
+import java.util.*;
+import java.util.concurrent.*;
+
+class User {
+    private String username;
+    private String password;
+    private String profile;
+
+    public User(String username, String password) {
+        this.username = username;
+        this.password = password;
+        this.profile = "";
+    }
+    public String getUsername() { return username; }
+    public String getPassword() { return password; }
+    public String getProfile() { return profile; }
+    public void setPassword(String password) { this.password = password; }
+    public void setProfile(String profile) { this.profile = profile; }
+}
+
+class Question {
+    private String questionText;
+    private List<String> options;
+    private int correctOption;
+
+    public Question(String questionText, List<String> options, int correctOption) {
+        this.questionText = questionText;
+        this.options = options;
+        this.correctOption = correctOption;
+    }
+
+    
+    public String getQuestionText() { return questionText; }
+    public List<String> getOptions() { return options; }
+    public int getCorrectOption() { return correctOption; }
+}
+
+class Exam {
+    private List<Question> questions;
+    private int timeLimit;
+    private Map<User, List<Integer>> userAnswers;
+
+    public Exam(int timeLimit) {
+        this.questions = new ArrayList<>();
+        this.timeLimit = timeLimit;
+        this.userAnswers = new HashMap<>();
+    }
+
+    public void addQuestion(Question question) {
+        questions.add(question);
+    }
+
+    public List<Question> getQuestions() { return questions; }
+    public int getTimeLimit() { return timeLimit; }
+
+    public void setUserAnswers(User user, List<Integer> answers) {
+        userAnswers.put(user, answers);
+    }
+
+    public List<Integer> getUserAnswers(User user) {
+        return userAnswers.get(user);
+    }
+}
+
+class ExamSystem {
+    private Map<String, User> users;
+    private Exam currentExam;
+
+    public ExamSystem() {
+        users = new HashMap<>();
+        users.put("Sima", new User("Sima", "123"));
+        users.put("Tom", new User("Tom", "456"));
+    }
+
+    public boolean login(String username, String password) {
+        User user = users.get(username);
+        return user != null && user.getPassword().equals(password);
+    }
+
+    public void updateProfile(String username, String newProfile) {
+        User user = users.get(username);
+        if (user != null) {
+            user.setProfile(newProfile);
+            System.out.println("Profile updated successfully.");
+        } else {
+            System.out.println("User not found.");
+        }
+    }
+
+    public void updatePassword(String username, String newPassword) {
+        User user = users.get(username);
+        if (user != null) {
+            user.setPassword(newPassword);
+            System.out.println("Password updated successfully.");
+        } else {
+            System.out.println("User not found.");
+        }
+    }
+
+    public void createExam(int timeLimit) {
+        currentExam = new Exam(timeLimit);
+        currentExam.addQuestion(new Question("What is 2 + 2?", Arrays.asList("3", "4", "5", "6"), 1));
+        currentExam.addQuestion(new Question("What is the capital of France?", Arrays.asList("London", "Berlin", "Paris", "Madrid"), 2));
+    }
+
+    public void startExam(User user) {
+        if (currentExam == null) {
+            System.out.println("No exam is currently set up.");
+            return;
+        }
+
+        System.out.println("Exam started. You have " + currentExam.getTimeLimit() + " minutes.");
+        List<Integer> answers = new ArrayList<>();
+
+        ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
+        executor.schedule(() -> {
+            System.out.println("\nTime's up! Exam ended.");
+            endExam(user, answers);
+        }, currentExam.getTimeLimit(), TimeUnit.MINUTES);
+
+        Scanner scanner = new Scanner(System.in);
+        for (int i = 0; i < currentExam.getQuestions().size(); i++) {
+            Question q = currentExam.getQuestions().get(i);
+            System.out.println("\nQuestion " + (i + 1) + ": " + q.getQuestionText());
+            for (int j = 0; j < q.getOptions().size(); j++) {
+                System.out.println((j + 1) + ". " + q.getOptions().get(j));
+            }
+            System.out.print("Your answer (1-" + q.getOptions().size() + "): ");
+            int answer = scanner.nextInt();
+            answers.add(answer - 1);
+        }
+
+        executor.shutdownNow();
+        endExam(user, answers);
+    }
+
+    public void endExam(User user, List<Integer> answers) {
+        currentExam.setUserAnswers(user, answers);
+        System.out.println("Exam submitted. Calculating score...");
+        int score = calculateScore(user);
+        System.out.println("Your score: " + score + "/" + currentExam.getQuestions().size());
+    }
+
+    private int calculateScore(User user) {
+        List<Integer> userAnswers = currentExam.getUserAnswers(user);
+        int score = 0;
+        for (int i = 0; i < currentExam.getQuestions().size(); i++) {
+            if (userAnswers.get(i) == currentExam.getQuestions().get(i).getCorrectOption()) {
+                score++;
+            }
+        }
+        return score;
+    }
+
+    public void logout(User user) {
+        System.out.println("Logged out successfully.");
+    }
+}
+
+public class OnlineExamination {
+    public static void main(String[] args) {
+        ExamSystem system = new ExamSystem();
+        Scanner scanner = new Scanner(System.in);
+        User currentUser = null;
+
+        while (true) {
+            if (currentUser == null) {
+                System.out.println("\n1. Login");
+                System.out.println("2. Exit");
+                System.out.print("Choose an option: ");
+                int choice = scanner.nextInt();
+                scanner.nextLine(); 
+
+                if (choice == 1) {
+                    System.out.print("Username: ");
+                    String username = scanner.nextLine();
+                    System.out.print("Password: ");
+                    String password = scanner.nextLine();
+
+                    if (system.login(username, password)) {
+                        currentUser = new User(username, password);
+                        System.out.println("Login successful.");
+                    } else {
+                        System.out.println("Invalid credentials.");
+                    }
+                } else if (choice == 2) {
+                    System.out.println("Goodbye!");
+                    break;
+                }
+            } else {
+                System.out.println("\n1. Update Profile");
+                System.out.println("2. Update Password");
+                System.out.println("3. Start Exam");
+                System.out.println("4. Logout");
+                System.out.print("Choose an option: ");
+                int choice = scanner.nextInt();
+                scanner.nextLine(); 
+
+                switch (choice) {
+                    case 1:
+                        System.out.print("Enter new profile information: ");
+                        String newProfile = scanner.nextLine();
+                        system.updateProfile(currentUser.getUsername(), newProfile);
+                        break;
+                    case 2:
+                        System.out.print("Enter new password: ");
+                        String newPassword = scanner.nextLine();
+                        system.updatePassword(currentUser.getUsername(), newPassword);
+                        break;
+                    case 3:
+                        system.createExam(10); 
+                        system.startExam(currentUser);
+                        break;
+                    case 4:
+                        system.logout(currentUser);
+                        currentUser = null;
+                        break;
+                }
+            }
+        }
+    }
+}
